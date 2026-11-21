@@ -1,0 +1,69 @@
+[
+  {
+    "scenario": "S1",
+    "vendor": "Kaveri Fasteners & Tools",
+    "buyer": "Sri Venkateswara Auto Components Pvt Ltd",
+    "layouts": {
+      "po": "PO-A",
+      "grn": "GRN-A",
+      "invoice": "INV-1"
+    },
+    "files": {
+      "po": "po_S1.pdf",
+      "grn": "grn_S1.pdf",
+      "inv": "inv_S1.pdf"
+    },
+    "expected": {
+      "status": "MATCHED",
+      "reasons": [],
+      "note": "Clean 3-way match. All qty/rate/tax agree. Use as the happy-path test."
+    }
+  },
+  {
+    "scenario": "S2",
+    "vendor": "Shree Ganesh Packaging Industries",
+    "buyer": "Sri Venkateswara Auto Components Pvt Ltd",
+    "layouts": {
+      "po": "PO-A",
+      "grn": "GRN-A",
+      "invoice": "INV-2"
+    },
+    "files": {
+      "po": "po_S2.pdf",
+      "grn": "grn_S2.pdf",
+      "inv": "inv_S2.pdf"
+    },
+    "expected": {
+      "status": "EXCEPTION",
+      "reasons": [
+        "RATE_MISMATCH(line 1: invoice 40.20 vs PO 38.50, +4.4%)",
+        "QTY_EXCEEDS_GRN(line 3: invoiced 600 vs accepted 540)"
+      ],
+      "note": "Line 1 partial delivery (3000 of 5000) is VALID; only the rate is wrong. IGST because vendor is Maharashtra and buyer is Tamil Nadu."
+    }
+  },
+  {
+    "scenario": "S3",
+    "vendor": "Annapoorna Traders",
+    "buyer": "Lakshmi Precision Castings",
+    "layouts": {
+      "po": "PO-B",
+      "grn": "GRN-B",
+      "invoice": "INV-3"
+    },
+    "files": {
+      "po": "po_S3.pdf",
+      "grn": "grn_S3.pdf",
+      "inv": "inv_S3.pdf",
+      "inv_duplicate": "inv_S3_duplicate.pdf"
+    },
+    "expected": {
+      "status": "EXCEPTION",
+      "reasons": [
+        "QTY_EXCEEDS_GRN(line 3: invoiced 10 vs accepted 8)",
+        "DUPLICATE_INVOICE (second file inv_S3_duplicate.pdf)"
+      ],
+      "note": "Mixed GST rates (18% and 5%). The duplicate is the same invoice re-printed as 'Duplicate for Transporter' and must be caught by the vendor+invoice no+amount check."
+    }
+  }
+]

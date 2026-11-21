@@ -1,0 +1,62 @@
+{
+  "doc_type": "INVOICE",
+  "number": "SGP/2627/01184",
+  "date": "2026-11-09",
+  "buyer": {
+    "name": "Sri Venkateswara Auto Components Pvt Ltd",
+    "gstin": "33AAECS4821K1ZD"
+  },
+  "vendor": {
+    "name": "Shree Ganesh Packaging Industries",
+    "gstin": "27AAMFS9054Q1Z5"
+  },
+  "po_ref": "SVAC/PO/26-27/0418",
+  "challan_no": "SGP/DC/2290",
+  "eway_bill": "271009884412",
+  "lines": [
+    {
+      "line_no": 1,
+      "item_code": "CTN-5P-450",
+      "description": "Corrugated Box 5 Ply 450x300x250 mm, BF 18",
+      "hsn": "4819",
+      "qty": 3000,
+      "uom": "Nos",
+      "rate": 40.2,
+      "gst_rate": 18,
+      "taxable_value": 120600.0
+    },
+    {
+      "line_no": 2,
+      "item_code": "BUB-1M100",
+      "description": "Bubble Wrap Roll 1 m x 100 m",
+      "hsn": "3923",
+      "qty": 40,
+      "uom": "Roll",
+      "rate": 920.0,
+      "gst_rate": 18,
+      "taxable_value": 36800.0
+    },
+    {
+      "line_no": 3,
+      "item_code": "TAPE-B48",
+      "description": "BOPP Tape 48 mm x 65 m, Brown",
+      "hsn": "3919",
+      "qty": 600,
+      "uom": "Roll",
+      "rate": 32.0,
+      "gst_rate": 18,
+      "taxable_value": 19200.0
+    }
+  ],
+  "tax_type": "IGST",
+  "tax_breakup": [
+    {
+      "type": "IGST",
+      "rate": 18,
+      "amount": 31788.0
+    }
+  ],
+  "subtotal": 176600.0,
+  "round_off": 0.0,
+  "total": 208388.0
+}

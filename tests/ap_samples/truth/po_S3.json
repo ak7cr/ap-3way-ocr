@@ -1,0 +1,76 @@
+{
+  "doc_type": "PURCHASE_ORDER",
+  "number": "LPC/PO/0267",
+  "date": "2026-11-03",
+  "buyer": {
+    "name": "Lakshmi Precision Castings",
+    "gstin": "33AAFFL7733C1ZL"
+  },
+  "vendor": {
+    "name": "Annapoorna Traders",
+    "gstin": "33ACTPA6618L1ZC"
+  },
+  "delivery_date": "2026-11-12",
+  "payment_terms": "Net 30 days",
+  "lines": [
+    {
+      "line_no": 1,
+      "item_code": "LUB-SRV68",
+      "description": "Servo Hydraulic Oil 68, 210 L Drum",
+      "hsn": "2710",
+      "qty": 4,
+      "uom": "Drum",
+      "rate": 21500.0,
+      "gst_rate": 18,
+      "taxable_value": 86000.0
+    },
+    {
+      "line_no": 2,
+      "item_code": "GRS-EP2",
+      "description": "Lithium Grease EP2, 18 kg Pail",
+      "hsn": "2710",
+      "qty": 6,
+      "uom": "Pail",
+      "rate": 3850.0,
+      "gst_rate": 18,
+      "taxable_value": 23100.0
+    },
+    {
+      "line_no": 3,
+      "item_code": "CW-50",
+      "description": "Cotton Waste, 50 kg Bale",
+      "hsn": "6310",
+      "qty": 10,
+      "uom": "Bale",
+      "rate": 1450.0,
+      "gst_rate": 5,
+      "taxable_value": 14500.0
+    }
+  ],
+  "tax_type": "CGST+SGST",
+  "tax_breakup": [
+    {
+      "type": "CGST",
+      "rate": 9.0,
+      "amount": 9819.0
+    },
+    {
+      "type": "SGST",
+      "rate": 9.0,
+      "amount": 9819.0
+    },
+    {
+      "type": "CGST",
+      "rate": 2.5,
+      "amount": 362.5
+    },
+    {
+      "type": "SGST",
+      "rate": 2.5,
+      "amount": 362.5
+    }
+  ],
+  "subtotal": 123600.0,
+  "round_off": 0.0,
+  "total": 143963.0
+}

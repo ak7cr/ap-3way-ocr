@@ -1,0 +1,26 @@
+{
+  "name": "order-ocr-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "venv/bin/uvicorn backend.main:app --reload --port ${API_PORT:-8000}",
+    "dev:web": "vite --config client/vite.config.js",
+    "start": "venv/bin/uvicorn backend.main:app --port ${API_PORT:-8000}",
+    "db:init": "venv/bin/python -c \"from backend.database import init_db; init_db()\"",
+    "dev:alt": "API_PORT=8010 WEB_PORT=5180 npm run dev",
+    "dev:ocr": "bash scripts/dev-ocr-sidecars.sh",
+    "dev:all": "concurrently -n ocr,api,web -c yellow,cyan,magenta \"npm run dev:ocr\" \"npm run dev:api\" \"npm run dev:web\""
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.12",
+    "@vitejs/plugin-react": "^5.0.2",
+    "concurrently": "^9.2.4",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.10.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.12",
+    "vite": "^7.1.3"
+  }
+}

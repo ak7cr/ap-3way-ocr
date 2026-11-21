@@ -1,0 +1,4 @@
+po_number,vendor_name,vendor_gstin,po_date,currency,status,category,item_code,description,quantity,unit,rate,tax_rate
+PO-2026-001,Acme Steel Pvt Ltd,27AABCU9603R1ZM,2026-11-01,INR,OPEN,commodity,STL-100,MS Angle 50x50x6,100,KG,62.50,18
+PO-2026-001,Acme Steel Pvt Ltd,27AABCU9603R1ZM,2026-11-01,INR,OPEN,commodity,STL-200,MS Plate 6mm,50,KG,71.00,18
+PO-2026-001,Acme Steel Pvt Ltd,27AABCU9603R1ZM,2026-11-01,INR,OPEN,commodity,STL-300,GI Pipe 2 inch,40,MTR,155.00,18

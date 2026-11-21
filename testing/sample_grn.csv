@@ -1,0 +1,4 @@
+grn_number,po_number,receipt_date,po_line_no,item_code,description,received_qty,unit
+GRN-2026-001,PO-2026-001,2026-11-05,1,STL-100,MS Angle 50x50x6,100,KG
+GRN-2026-001,PO-2026-001,2026-11-05,2,STL-200,MS Plate 6mm,50,KG
+GRN-2026-001,PO-2026-001,2026-11-05,3,STL-300,GI Pipe 2 inch,40,MTR

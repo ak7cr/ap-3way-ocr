@@ -1,0 +1,67 @@
+{
+  "doc_type": "GRN",
+  "number": "GRN/26-27/0733",
+  "date": "2026-11-07",
+  "buyer": {
+    "name": "Sri Venkateswara Auto Components Pvt Ltd",
+    "gstin": "33AAECS4821K1ZD"
+  },
+  "vendor": {
+    "name": "Kaveri Fasteners & Tools",
+    "gstin": "33AAHFK3390P1ZW"
+  },
+  "po_ref": "SVAC/PO/26-27/0412",
+  "challan_no": "DC-1187",
+  "challan_date": "2026-11-06",
+  "vehicle_no": "TN 09 CE 4471",
+  "lines": [
+    {
+      "line_no": 1,
+      "item_code": "BLT-M10-60",
+      "description": "Hex Bolt M10 x 60 mm, HT 8.8, Zinc Plated",
+      "uom": "Nos",
+      "po_qty": 2000,
+      "challan_qty": 2000,
+      "received_qty": 2000,
+      "accepted_qty": 2000,
+      "rejected_qty": 0,
+      "remarks": ""
+    },
+    {
+      "line_no": 2,
+      "item_code": "NUT-M10",
+      "description": "Hex Nut M10, Zinc Plated",
+      "uom": "Nos",
+      "po_qty": 2000,
+      "challan_qty": 2000,
+      "received_qty": 2000,
+      "accepted_qty": 2000,
+      "rejected_qty": 0,
+      "remarks": ""
+    },
+    {
+      "line_no": 3,
+      "item_code": "WSH-M10",
+      "description": "Spring Washer M10",
+      "uom": "Nos",
+      "po_qty": 2000,
+      "challan_qty": 2000,
+      "received_qty": 2000,
+      "accepted_qty": 2000,
+      "rejected_qty": 0,
+      "remarks": ""
+    },
+    {
+      "line_no": 4,
+      "item_code": "ALN-SET9",
+      "description": "Allen Key Set, 9 Pcs, Long Arm",
+      "uom": "Set",
+      "po_qty": 25,
+      "challan_qty": 25,
+      "received_qty": 25,
+      "accepted_qty": 25,
+      "rejected_qty": 0,
+      "remarks": ""
+    }
+  ]
+}

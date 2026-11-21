@@ -1,0 +1,55 @@
+{
+  "doc_type": "GRN",
+  "number": "MRR-2026-0581",
+  "date": "2026-11-12",
+  "buyer": {
+    "name": "Lakshmi Precision Castings",
+    "gstin": "33AAFFL7733C1ZL"
+  },
+  "vendor": {
+    "name": "Annapoorna Traders",
+    "gstin": "33ACTPA6618L1ZC"
+  },
+  "po_ref": "LPC/PO/0267",
+  "challan_no": "AT/1042",
+  "challan_date": "2026-11-12",
+  "vehicle_no": "TN 38 BQ 5109",
+  "lines": [
+    {
+      "line_no": 1,
+      "item_code": "LUB-SRV68",
+      "description": "Servo Hydraulic Oil 68, 210 L Drum",
+      "uom": "Drum",
+      "po_qty": 4,
+      "challan_qty": 4,
+      "received_qty": 4,
+      "accepted_qty": 4,
+      "rejected_qty": 0,
+      "remarks": ""
+    },
+    {
+      "line_no": 2,
+      "item_code": "GRS-EP2",
+      "description": "Lithium Grease EP2, 18 kg Pail",
+      "uom": "Pail",
+      "po_qty": 6,
+      "challan_qty": 6,
+      "received_qty": 6,
+      "accepted_qty": 6,
+      "rejected_qty": 0,
+      "remarks": ""
+    },
+    {
+      "line_no": 3,
+      "item_code": "CW-50",
+      "description": "Cotton Waste, 50 kg Bale",
+      "uom": "Bale",
+      "po_qty": 10,
+      "challan_qty": 10,
+      "received_qty": 8,
+      "accepted_qty": 8,
+      "rejected_qty": 0,
+      "remarks": "2 bales short at unloading"
+    }
+  ]
+}

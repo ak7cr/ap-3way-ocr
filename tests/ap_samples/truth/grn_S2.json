@@ -1,0 +1,55 @@
+{
+  "doc_type": "GRN",
+  "number": "GRN/26-27/0741",
+  "date": "2026-11-10",
+  "buyer": {
+    "name": "Sri Venkateswara Auto Components Pvt Ltd",
+    "gstin": "33AAECS4821K1ZD"
+  },
+  "vendor": {
+    "name": "Shree Ganesh Packaging Industries",
+    "gstin": "27AAMFS9054Q1Z5"
+  },
+  "po_ref": "SVAC/PO/26-27/0418",
+  "challan_no": "SGP/DC/2290",
+  "challan_date": "2026-11-09",
+  "vehicle_no": "MH 14 HG 8820",
+  "lines": [
+    {
+      "line_no": 1,
+      "item_code": "CTN-5P-450",
+      "description": "Corrugated Box 5 Ply 450x300x250 mm, BF 18",
+      "uom": "Nos",
+      "po_qty": 5000,
+      "challan_qty": 3000,
+      "received_qty": 3000,
+      "accepted_qty": 3000,
+      "rejected_qty": 0,
+      "remarks": "Balance 2000 to follow"
+    },
+    {
+      "line_no": 2,
+      "item_code": "BUB-1M100",
+      "description": "Bubble Wrap Roll 1 m x 100 m",
+      "uom": "Roll",
+      "po_qty": 40,
+      "challan_qty": 40,
+      "received_qty": 40,
+      "accepted_qty": 40,
+      "rejected_qty": 0,
+      "remarks": ""
+    },
+    {
+      "line_no": 3,
+      "item_code": "TAPE-B48",
+      "description": "BOPP Tape 48 mm x 65 m, Brown",
+      "uom": "Roll",
+      "po_qty": 600,
+      "challan_qty": 540,
+      "received_qty": 540,
+      "accepted_qty": 540,
+      "rejected_qty": 0,
+      "remarks": "Short supply 60"
+    }
+  ]
+}

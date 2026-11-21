@@ -1,0 +1,23 @@
+node_modules/
+client/node_modules/
+client/dist/
+.env
+uploads/
+__pycache__/
+*.pyc
+venv
+.venv
+.DS_Store
+templates.db
+invoice-ocr-c++
+invoice-ocr-line-system
+/generated/prisma
+.agents
+.claude
+.windsurf
+skills-lock.json
+.venv-verify
+.verify.db
+
+# OCR sidecar state (databases + logs)
+.sidecars/

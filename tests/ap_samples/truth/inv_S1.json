@@ -1,0 +1,78 @@
+{
+  "doc_type": "INVOICE",
+  "number": "KFT/26-27/0891",
+  "date": "2026-11-06",
+  "buyer": {
+    "name": "Sri Venkateswara Auto Components Pvt Ltd",
+    "gstin": "33AAECS4821K1ZD"
+  },
+  "vendor": {
+    "name": "Kaveri Fasteners & Tools",
+    "gstin": "33AAHFK3390P1ZW"
+  },
+  "po_ref": "SVAC/PO/26-27/0412",
+  "challan_no": "DC-1187",
+  "eway_bill": "241012398877",
+  "lines": [
+    {
+      "line_no": 1,
+      "item_code": "BLT-M10-60",
+      "description": "Hex Bolt M10 x 60 mm, HT 8.8, Zinc Plated",
+      "hsn": "7318",
+      "qty": 2000,
+      "uom": "Nos",
+      "rate": 6.5,
+      "gst_rate": 18,
+      "taxable_value": 13000.0
+    },
+    {
+      "line_no": 2,
+      "item_code": "NUT-M10",
+      "description": "Hex Nut M10, Zinc Plated",
+      "hsn": "7318",
+      "qty": 2000,
+      "uom": "Nos",
+      "rate": 2.1,
+      "gst_rate": 18,
+      "taxable_value": 4200.0
+    },
+    {
+      "line_no": 3,
+      "item_code": "WSH-M10",
+      "description": "Spring Washer M10",
+      "hsn": "7318",
+      "qty": 2000,
+      "uom": "Nos",
+      "rate": 0.95,
+      "gst_rate": 18,
+      "taxable_value": 1900.0
+    },
+    {
+      "line_no": 4,
+      "item_code": "ALN-SET9",
+      "description": "Allen Key Set, 9 Pcs, Long Arm",
+      "hsn": "8204",
+      "qty": 25,
+      "uom": "Set",
+      "rate": 185.0,
+      "gst_rate": 18,
+      "taxable_value": 4625.0
+    }
+  ],
+  "tax_type": "CGST+SGST",
+  "tax_breakup": [
+    {
+      "type": "CGST",
+      "rate": 9.0,
+      "amount": 2135.25
+    },
+    {
+      "type": "SGST",
+      "rate": 9.0,
+      "amount": 2135.25
+    }
+  ],
+  "subtotal": 23725.0,
+  "round_off": 0.5,
+  "total": 27996.0
+}
