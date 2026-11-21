@@ -175,7 +175,9 @@ balance tracks received, invoiced and credited quantities so repeat/partial
 deliveries can be considered. Duplicate-invoice detection is not enabled;
 instead, the same invoice uploaded again is recognised by vendor, number and
 date and updates the existing record, so a re-upload cannot bill the purchase
-order twice.
+order twice. Invoiced quantities are recomputed from the match results that
+still exist rather than adjusted in place, so the balance re-aligns itself and
+an earlier bad run cannot leave a line permanently "over-billed".
 
 ## 6. Recommendation, review and exception handling
 

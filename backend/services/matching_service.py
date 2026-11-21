@@ -458,25 +458,40 @@ def _delete_match_result(db: Session, result: MatchResult) -> None:
     db.delete(result)
 
 
-def _reverse_invoice_balances(db: Session, result: MatchResult) -> None:
-    """Undo a previous match's balance impact before re-matching the same document."""
-    if not result.balances_applied or not result.po_id:
+def _rebuild_invoiced_balances(db: Session, po_id: Optional[int]) -> None:
+    """
+    Recompute invoiced_qty on every PO line from the live match results.
+
+    Incrementing in place cannot heal: a result deleted without its reversal, or
+    a document that was reused, leaves a balance no result owns, and every later
+    invoice then looks over-billed. Recomputing from the results that still exist
+    makes the balance self-correcting.
+    """
+    if not po_id:
         return
-    po = db.query(PurchaseOrder).filter(PurchaseOrder.id == result.po_id).first()
+    db.flush()  # pending deletes/inserts must be visible to the sums below
+    po = db.query(PurchaseOrder).filter(PurchaseOrder.id == po_id).first()
     if po is None:
         return
-    lines_by_no = {line.line_no: line for line in po.lines}
-    for finding in result.line_findings or []:
-        po_line_no = finding.get("po_line_no")
-        if po_line_no is None:
-            continue
-        po_line = lines_by_no.get(int(po_line_no))
-        if po_line is None:
-            continue
+
+    totals: Dict[int, Decimal] = {}
+    applied = (
+        db.query(MatchResult)
+        .filter(MatchResult.po_id == po_id, MatchResult.balances_applied.is_(True))
+        .all()
+    )
+    for result in applied:
+        for finding in result.line_findings or []:
+            po_line_no = finding.get("po_line_no")
+            if po_line_no is None:
+                continue
+            totals[int(po_line_no)] = totals.get(int(po_line_no), Decimal("0")) + _dec(
+                finding.get("invoice_qty")
+            )
+
+    for po_line in po.lines:
         balance = _ensure_balance(db, po_line)
-        qty = _dec(finding.get("invoice_qty"))
-        new_qty = (_dec(balance.invoiced_qty) - qty)
-        balance.invoiced_qty = (new_qty if new_qty > 0 else Decimal("0")).quantize(Decimal("0.0001"))
+        balance.invoiced_qty = totals.get(po_line.line_no, Decimal("0")).quantize(Decimal("0.0001"))
 
 
 def canonicalize_extraction(
@@ -510,7 +525,9 @@ def canonicalize_extraction(
         .order_by(InvoiceDocument.id.desc())
         .first()
     )
-    if doc is None and canonical.invoice_number:
+
+    duplicates: List[InvoiceDocument] = []
+    if canonical.invoice_number:
         query = db.query(InvoiceDocument).filter(
             InvoiceDocument.invoice_number == canonical.invoice_number
         )
@@ -520,17 +537,36 @@ def canonicalize_extraction(
                 query = query.filter(InvoiceDocument.invoice_date == parsed)
         if resolution.vendor and resolution.vendor.id:
             query = query.filter(InvoiceDocument.vendor_id == resolution.vendor.id)
-        doc = query.order_by(InvoiceDocument.id.desc()).first()
-        if doc is not None:
+        matches = query.order_by(InvoiceDocument.id.desc()).all()
+        if doc is None and matches:
+            doc = matches[0]
             doc.extraction_log_id = extraction_log.id
+        # Earlier uploads of the same invoice each hold a document. Collapsing
+        # them into one keeps a single invoice from billing the PO repeatedly.
+        duplicates = [candidate for candidate in matches if candidate is not doc]
+
+    affected_po_ids = set()
+    for stale in duplicates:
+        for previous in db.query(MatchResult).filter(MatchResult.invoice_document_id == stale.id).all():
+            if previous.po_id:
+                affected_po_ids.add(previous.po_id)
+            _delete_match_result(db, previous)
+        db.query(DecisionObservation).filter(DecisionObservation.document_id == stale.id).delete()
+        db.query(InvoiceDocumentLine).filter(InvoiceDocumentLine.invoice_document_id == stale.id).delete()
+        db.delete(stale)
+
     if doc is None:
         doc = InvoiceDocument(extraction_log_id=extraction_log.id, tenant_id=DEFAULT_TENANT)
         db.add(doc)
     else:
         for previous in db.query(MatchResult).filter(MatchResult.invoice_document_id == doc.id).all():
-            _reverse_invoice_balances(db, previous)
+            if previous.po_id:
+                affected_po_ids.add(previous.po_id)
             _delete_match_result(db, previous)
         db.query(InvoiceDocumentLine).filter(InvoiceDocumentLine.invoice_document_id == doc.id).delete()
+
+    for po_id in affected_po_ids:
+        _rebuild_invoiced_balances(db, po_id)
 
     doc.vendor_id = resolution.vendor.id if resolution.vendor else None
     doc.invoice_number = canonical.invoice_number
@@ -691,6 +727,10 @@ def run_match_for_invoice(db: Session, invoice_document_id: int) -> MatchResult:
     po = None
     if canonical.po_number:
         po = db.query(PurchaseOrder).filter(PurchaseOrder.po_number == canonical.po_number).first()
+        if po is not None:
+            # Re-align the invoiced balance with the results that still exist
+            # before judging this invoice, so earlier drift cannot overstate it.
+            _rebuild_invoiced_balances(db, po.id)
 
     vendor = None
     if doc.vendor_id:
@@ -776,36 +816,21 @@ def run_match_for_invoice(db: Session, invoice_document_id: int) -> MatchResult:
 
 
 def _apply_invoice_to_balances(db: Session, result: MatchResult, doc: InvoiceDocument) -> None:
-    """Increments invoiced_qty on each mapped PO line exactly once per match result."""
+    """Records that this result consumes PO quantity, then recomputes the balance."""
     if result.balances_applied:
         return
-    po = db.query(PurchaseOrder).filter(PurchaseOrder.id == result.po_id).first() if result.po_id else None
-    if po is None:
-        result.balances_applied = True
-        return
-
-    lines_by_no = {line.line_no: line for line in po.lines}
-    for finding in result.line_findings or []:
-        po_line_no = finding.get("po_line_no")
-        if po_line_no is None:
-            continue
-        po_line = lines_by_no.get(int(po_line_no))
-        if po_line is None:
-            continue
-        balance = _ensure_balance(db, po_line)
-        qty = _dec(finding.get("invoice_qty"))
-        balance.invoiced_qty = (_dec(balance.invoiced_qty) + qty).quantize(Decimal("0.0001"))
-
     result.balances_applied = True
-    _audit(
-        db,
-        "purchase_order",
-        po.id,
-        "BALANCE_INVOICED",
-        "engine",
-        None,
-        {"invoice_document_id": doc.id, "match_result_id": result.id},
-    )
+    _rebuild_invoiced_balances(db, result.po_id)
+    if result.po_id:
+        _audit(
+            db,
+            "purchase_order",
+            result.po_id,
+            "BALANCE_INVOICED",
+            "engine",
+            None,
+            {"invoice_document_id": doc.id, "match_result_id": result.id},
+        )
 
 
 # ---------------------------------------------------------------------------

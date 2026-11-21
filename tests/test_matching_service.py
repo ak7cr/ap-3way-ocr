@@ -506,3 +506,57 @@ def test_reupload_after_shadow_recording_deletes_the_old_match(db):
     assert db.query(InvoiceDocument).count() == 1
     assert db.query(DecisionObservation).count() == 0
     assert svc.run_match_for_invoice(db, second_doc.id).status == STATUS_MATCHED
+
+
+def _ocr_payload(number="INV-MERGE"):
+    return {
+        "metadata": {"invoice_number": number, "invoice_date": "2026-11-08", "currency": "INR"},
+        "seller": {"name": "Acme Steel Pvt Ltd", "gstin": "27AABCU9603R1ZM"},
+        "line_items": [
+            {"sno": "1", "description": "MS Angle 50x50x6", "quantity": 40, "unit_price": 62.50, "tax_rate": 18, "total_amount": 2500},
+        ],
+        "summary": {"subtotal": 2500, "total_gst": 450, "grand_total": 2950},
+    }
+
+
+def test_repeated_uploads_of_one_invoice_collapse_into_a_single_document(db):
+    """Each upload used to leave its own document, so the PO looked fully billed."""
+    from backend.database import ExtractionLog, InvoiceDocument
+
+    seed_vendor_po(db, ordered=100, received=100)
+    documents = []
+    for _ in range(4):
+        log = ExtractionLog(engine_used="test", extracted_data=_ocr_payload(), original_filename="a.pdf")
+        db.add(log)
+        db.commit()
+        documents.append(svc.canonicalize_extraction(db, log, po_number="PO-100"))
+
+    assert len({doc.id for doc in documents}) == 1
+    assert db.query(InvoiceDocument).count() == 1
+
+    result = svc.run_match_for_invoice(db, documents[-1].id)
+    assert result.status == STATUS_MATCHED
+    assert result.reason_codes == []
+
+
+def test_drifted_invoiced_balance_is_rebuilt_on_the_next_match(db):
+    """A balance left behind by an older run must not make every invoice over-billed."""
+    from backend.database import ExtractionLog, POLineBalance
+
+    seed_vendor_po(db, ordered=100, received=100)
+    balance = db.query(POLineBalance).first()
+    balance.invoiced_qty = Decimal("100")      # fully billed, but no match result owns it
+    db.commit()
+
+    log = ExtractionLog(engine_used="test", extracted_data=_ocr_payload("INV-HEAL"), original_filename="a.pdf")
+    db.add(log)
+    db.commit()
+    doc = svc.canonicalize_extraction(db, log, po_number="PO-100")
+
+    result = svc.run_match_for_invoice(db, doc.id)
+
+    assert result.status == STATUS_MATCHED
+    assert "QTY_EXCEEDS_PO" not in result.reason_codes
+    assert "QTY_EXCEEDS_GRN" not in result.reason_codes
+    db.refresh(balance)
+    assert Decimal(balance.invoiced_qty) == Decimal("40")
