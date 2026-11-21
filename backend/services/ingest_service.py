@@ -678,9 +678,13 @@ async def ingest_upload(
                     "Check the detected text and classification signals before retrying."
                 )
     except ValueError as exc:
+        # Release the failed transaction so the next document in the batch is
+        # not blocked by "transaction has been rolled back".
+        db.rollback()
         result["action"] = "error"
         result["message"] = str(exc)
     except Exception as exc:
+        db.rollback()
         result["action"] = "error"
         result["message"] = f"{type(exc).__name__}: {exc}"
 

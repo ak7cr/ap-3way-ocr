@@ -166,7 +166,6 @@ def _three_way_for_log(db: Session, log: ExtractionLog, source_key: Optional[str
                 "match_result_id": result.id,
                 "status": result.status,
                 "reason_codes": result.reason_codes or [],
-                "duplicate_of_invoice_id": result.duplicate_of_invoice_id,
                 "approval_status": result.approval_status,
                 "approvals_required": result.approvals_required,
             }

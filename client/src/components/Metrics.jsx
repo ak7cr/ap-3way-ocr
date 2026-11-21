@@ -73,7 +73,6 @@ export default function Metrics() {
           hint={`${metrics.exceptions} exception(s), ${metrics.rejects} rejected`}
           tone="text-amber-300"
         />
-        <Kpi label="Duplicates caught" value={metrics.duplicates_caught} hint="vendor + number + amount + date" tone="text-rose-300" />
         <Kpi
           label="Avg cycle time"
           value={`${metrics.avg_cycle_time_hours}h`}
@@ -151,10 +150,6 @@ export default function Metrics() {
                   <dd className="font-mono text-slate-200">{value}</dd>
                 </div>
               ))}
-              <div className="flex items-center justify-between rounded-lg bg-slate-950/50 px-3 py-2">
-                <dt>duplicate window</dt>
-                <dd className="font-mono text-slate-200">{config.match.duplicate_window_days}d</dd>
-              </div>
               <div className="flex items-center justify-between rounded-lg bg-slate-950/50 px-3 py-2">
                 <dt>require GRN</dt>
                 <dd className="font-mono text-slate-200">{String(config.match.require_grn)}</dd>

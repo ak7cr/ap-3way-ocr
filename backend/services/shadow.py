@@ -89,7 +89,7 @@ def _same_intent(recommendation: Optional[str], human_decision: Optional[str]) -
     """
     Compares what the human did with what we suggested. Approving a document we
     recommended for review is agreement (we were appropriately cautious);
-    approving something we rejected as a duplicate is not.
+    approving something we rejected outright is not.
     """
     recommendation = (recommendation or "").upper()
     human_decision = (human_decision or "").upper()

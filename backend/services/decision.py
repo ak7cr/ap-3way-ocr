@@ -5,7 +5,7 @@ Rules (deliberately asymmetric):
   * APPROVE is strict — validation passed, vendor known, PO open, every match
     check clean, and the vendor has earned auto-approval out of shadow mode.
   * REJECT is narrow — only hard failures that no human should be asked to
-    adjudicate: duplicates, an unverifiable GSTIN, a PO that does not exist.
+    adjudicate: an unverifiable GSTIN, a PO that does not exist.
   * REVIEW is everything else. When in doubt, a human looks at it.
 
 This module is pure: it takes facts and policy and returns a decision. It never
@@ -22,7 +22,6 @@ REJECT = "REJECT"
 
 # Only these justify rejecting an invoice outright.
 HARD_REJECT_CODES = {
-    "DUPLICATE_INVOICE",
     "INVALID_SELLER_GSTIN_FORMAT",
     "GSTIN_CHECKSUM_INVALID",
     "PO_NOT_FOUND",

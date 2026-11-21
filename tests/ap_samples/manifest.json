@@ -60,10 +60,9 @@
     "expected": {
       "status": "EXCEPTION",
       "reasons": [
-        "QTY_EXCEEDS_GRN(line 3: invoiced 10 vs accepted 8)",
-        "DUPLICATE_INVOICE (second file inv_S3_duplicate.pdf)"
+        "QTY_EXCEEDS_GRN(line 3: invoiced 10 vs accepted 8)"
       ],
-      "note": "Mixed GST rates (18% and 5%). The duplicate is the same invoice re-printed as 'Duplicate for Transporter' and must be caught by the vendor+invoice no+amount check."
+      "note": "Mixed GST rates (18% and 5%). inv_S3_duplicate.pdf is the same invoice re-printed as 'Duplicate for Transporter'; duplicate detection is not enabled, so it is judged on its quantities like any other invoice."
     }
   }
 ]

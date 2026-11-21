@@ -29,7 +29,8 @@ you need one template per (buyer, doc type) and per (vendor, invoice).
 - S2  EXCEPTION. Partial delivery on line 1 (valid), rate +4.4% on line 1,
       invoice qty 600 vs GRN accepted 540 on line 3. Inter-state (IGST).
 - S3  EXCEPTION. Invoice qty 10 vs GRN accepted 8 on line 3. Mixed 18%/5% GST.
-      inv_S3_duplicate must be flagged DUPLICATE_INVOICE.
+      inv_S3_duplicate is the same invoice re-printed; duplicate detection is not
+      enabled, so it is judged on its quantities.
 
 ## Suggested tests
 1. OCR accuracy: run pdf/ then scanned/, diff against truth/ per field.

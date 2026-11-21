@@ -2,7 +2,7 @@
 Integration tests for the match service on an in-memory SQLite database.
 
 Covers the parts the pure engine cannot: PO/GRN persistence, cumulative line
-balances across partial deliveries, duplicate detection, exception workflow,
+balances across partial deliveries, exception workflow,
 segregation of duties, payment export and metrics.
 """
 from datetime import datetime
@@ -134,14 +134,16 @@ def test_bill_more_than_received_is_exception(db):
     assert "QTY_EXCEEDS_GRN" in result.reason_codes
 
 
-def test_duplicate_invoice_is_rejected(db):
+def test_repeating_an_invoice_number_is_not_a_duplicate_check(db):
+    """Duplicate detection was removed; matching judges the quantities instead."""
     seed_vendor_po(db, ordered=100, received=100)
     first = svc.run_match_for_invoice(db, svc.create_invoice_document(db, make_invoice(50, number="INV-DUP")).id)
     assert first.status == STATUS_MATCHED
+
     second = svc.run_match_for_invoice(db, svc.create_invoice_document(db, make_invoice(50, number="INV-DUP")).id)
-    assert second.status == STATUS_REJECT
-    assert "DUPLICATE_INVOICE" in second.reason_codes
-    assert second.duplicate_of_invoice_id is not None
+
+    assert "DUPLICATE_INVOICE" not in second.reason_codes
+    assert second.duplicate_of_invoice_id is None
 
 
 def test_closed_po_rejects_invoice(db):
@@ -264,7 +266,7 @@ def test_route_approval_uses_amount_bands_and_risk():
     assert set(high_value.required_roles) == {"finance", "director"}
 
     risky = MatchResult(status=STATUS_MATCHED)
-    svc.route_approval(risky, Decimal("1000"), "HIGH", ["DUPLICATE_INVOICE"])
+    svc.route_approval(risky, Decimal("1000"), "HIGH", ["QTY_EXCEEDS_PO"])
     assert "manager" in risky.required_roles and "director" in risky.required_roles
 
     rejected = MatchResult(status=STATUS_REJECT)
@@ -432,3 +434,75 @@ def test_grn_po_line_numbers_keep_lines_apart_when_codes_collide(db):
 
     assert [line.line_no for line in grn.lines] == [1, 2, 3]
     assert len({line.po_line_id for line in grn.lines}) == 3
+
+
+
+def test_reuploading_the_same_invoice_reuses_the_document(db):
+    """A second upload of the same invoice updates it instead of double-billing."""
+    from backend.database import ExtractionLog, InvoiceDocument
+
+    seed_vendor_po(db, ordered=100, received=100)
+    ocr_payload = {
+        "metadata": {"invoice_number": "INV-OCR-2", "invoice_date": "2026-11-08", "currency": "INR"},
+        "seller": {"name": "Acme Steel Pvt Ltd", "gstin": "27AABCU9603R1ZM"},
+        "line_items": [
+            {"sno": "1", "description": "MS Angle 50x50x6", "quantity": 40, "unit_price": 62.50, "tax_rate": 18, "total_amount": 2500},
+        ],
+        "summary": {"subtotal": 2500, "total_gst": 450, "grand_total": 2950},
+    }
+
+    first_log = ExtractionLog(engine_used="test", extracted_data=ocr_payload, original_filename="a.pdf")
+    db.add(first_log)
+    db.commit()
+    first_doc = svc.canonicalize_extraction(db, first_log, po_number="PO-100")
+    assert svc.run_match_for_invoice(db, first_doc.id).status == STATUS_MATCHED
+
+    # The same invoice arrives again as a new upload (new extraction log).
+    second_log = ExtractionLog(engine_used="test", extracted_data=ocr_payload, original_filename="a.pdf")
+    db.add(second_log)
+    db.commit()
+    second_doc = svc.canonicalize_extraction(db, second_log, po_number="PO-100")
+
+    assert second_doc.id == first_doc.id
+    assert db.query(InvoiceDocument).count() == 1
+
+    result = svc.run_match_for_invoice(db, second_doc.id)
+    assert "DUPLICATE_INVOICE" not in result.reason_codes
+    po = db.query(svc.PurchaseOrder).filter(svc.PurchaseOrder.po_number == "PO-100").first()
+    db.refresh(po.lines[0].balance)
+    assert Decimal(po.lines[0].balance.invoiced_qty) == Decimal("40")
+
+
+def test_reupload_after_shadow_recording_deletes_the_old_match(db):
+    """
+    A shadow-mode recommendation references the match result, so re-matching the
+    same invoice must clear that row first or the delete hits a foreign key.
+    """
+    from backend.database import DecisionObservation, ExtractionLog, InvoiceDocument
+
+    seed_vendor_po(db, ordered=100, received=100)
+    payload = {
+        "metadata": {"invoice_number": "INV-SHADOW", "invoice_date": "2026-11-08", "currency": "INR"},
+        "seller": {"name": "Acme Steel Pvt Ltd", "gstin": "27AABCU9603R1ZM"},
+        "line_items": [
+            {"sno": "1", "description": "MS Angle 50x50x6", "quantity": 40, "unit_price": 62.50, "tax_rate": 18, "total_amount": 2500},
+        ],
+        "summary": {"subtotal": 2500, "total_gst": 450, "grand_total": 2950},
+    }
+
+    first_log = ExtractionLog(engine_used="test", extracted_data=payload, original_filename="a.pdf")
+    db.add(first_log)
+    db.commit()
+    first_doc = svc.canonicalize_extraction(db, first_log, po_number="PO-100")
+    first_match = svc.run_match_for_invoice(db, first_doc.id)
+    assert db.query(DecisionObservation).filter_by(match_result_id=first_match.id).count() == 1
+
+    second_log = ExtractionLog(engine_used="test", extracted_data=payload, original_filename="a.pdf")
+    db.add(second_log)
+    db.commit()
+    second_doc = svc.canonicalize_extraction(db, second_log, po_number="PO-100")
+
+    assert second_doc.id == first_doc.id
+    assert db.query(InvoiceDocument).count() == 1
+    assert db.query(DecisionObservation).count() == 0
+    assert svc.run_match_for_invoice(db, second_doc.id).status == STATUS_MATCHED

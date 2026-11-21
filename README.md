@@ -157,12 +157,12 @@ lives in the modules below. **The match decision never uses an LLM.**
 
 ## Matching rules
 
-1. **Header** — vendor resolved from the vendor master (GSTIN first, then fuzzy name), PO exists and is `OPEN`, currency matches, invoice vendor equals PO vendor, and a duplicate check on *(vendor, invoice number, amount, date)* within the duplicate window.
+1. **Header** — vendor resolved from the vendor master (GSTIN first, then fuzzy name), PO exists and is `OPEN`, currency matches, and invoice vendor equals PO vendor. Duplicate-invoice detection is not enabled; an invoice re-uploaded with the same vendor, number and date updates the existing document.
 2. **Lines** — invoice qty ≤ GRN received qty ≤ PO ordered qty, rate within tolerance, line arithmetic consistent, tax rate consistent with the PO line. Lines are mapped deterministically: item code → fuzzy description → rate + quantity.
 3. **Totals** — tax recomputed from lines, CGST+SGST+IGST reconciled, grand total within tolerance, cumulative invoiced value not above PO value.
 4. **Partial deliveries** — each PO line keeps a balance (`po_line_balances`: received / invoiced / credited), so only `received − already invoiced` can be billed.
 
-Outcome: `MATCHED`, `EXCEPTION(reason_codes[])`, or `REJECT` (hard blocks such as unknown vendor, missing/closed PO, currency mismatch, duplicate).
+Outcome: `MATCHED`, `EXCEPTION(reason_codes[])`, or `REJECT` (hard blocks such as unknown vendor, missing/closed PO, currency mismatch).
 
 ## Validation gate, decisions and trust
 
@@ -189,7 +189,7 @@ matching uses); a PO/GRN that is unusable as goods data still fails.
 `backend/services/decision.py` turns the gate verdict plus the match result into one of:
 
 - **APPROVE** — validated, vendor known, PO open, every check clean, *and* the vendor has earned auto-approval.
-- **REJECT** — hard failures only: duplicates, an unverifiable GSTIN, a PO that does not exist.
+- **REJECT** — hard failures only: an unverifiable GSTIN, a PO that does not exist.
 - **REVIEW** — everything else. When unsure, a human looks at it.
 
 ### Template trust
@@ -269,7 +269,7 @@ decision writes to `audit_logs`.
 | GET | `/api/templates/candidates`, POST `/api/templates/{id}/confirm`, `/api/templates/proposals/{id}/confirm` | Candidate layouts and AI proposals awaiting a human |
 | GET | `/api/shadow/agreement`, `/api/vendors/{id}/agreement` | Observed agreement per vendor (the auto-approval evidence) |
 | GET | `/api/jobs` | Queue depth, pending by kind, recent jobs |
-| GET | `/api/metrics` | STP %, exception rate by reason, duplicates caught, cycle time, template hit rate, AI fallback share, validation failure rate |
+| GET | `/api/metrics` | STP %, exception rate by reason, cycle time, template hit rate, AI fallback share, validation failure rate |
 | GET | `/api/threeway/config` | Active thresholds, tolerances and approval rules |
 | POST | `/api/threeway/seed-demo` | Load a demo vendor/PO/GRN + one clean and one exception invoice |
 
@@ -283,7 +283,7 @@ Five sections:
 - **Review** — the human queue: the system's recommendation beside your decision, the full validation check list, decision reasons, the side-by-side comparison, and the layouts waiting to be confirmed.
 - **Receipts** — record a goods receipt by hand against a PO (or upload a sheet). This replaces scanning GRNs for customers without an ERP.
 - **Approvals** — pending approvals with required roles, segregation of duties, and payment CSV/Tally export.
-- **Metrics** — straight-through rate, exception rate by reason, duplicates caught, cycle time, value processed, template hit rate, AI fallback share, validation failure rate, live policy.
+- **Metrics** — straight-through rate, exception rate by reason, cycle time, value processed, template hit rate, AI fallback share, validation failure rate, live policy.
 
 There is no separate invoice-OCR screen: extraction is an implementation detail of the ingest step.
 
@@ -293,7 +293,7 @@ There is no separate invoice-OCR screen: extraction is an implementation detail 
 pytest tests -q
 ```
 
-`tests/test_matching_engine.py` holds the ~30 hand-built scenarios (partial delivery, tax mismatch, duplicate, over-billing, tolerance edges, mapping ladder); `tests/test_matching_service.py` covers balances, duplicate detection, exception/approval workflow, exports and metrics on an in-memory database. `tests/test_governance.py` covers the GSTIN checksum, every gate check (on deliberately broken arithmetic), the approve/review/reject rules, template trust promotion, shadow agreement and manual receipt intake; `tests/test_review_api.py` exercises the review and receipt endpoints over HTTP.
+`tests/test_matching_engine.py` holds the ~30 hand-built scenarios (partial delivery, tax mismatch, over-billing, tolerance edges, mapping ladder); `tests/test_matching_service.py` covers balances, exception/approval workflow, exports and metrics on an in-memory database. `tests/test_governance.py` covers the GSTIN checksum, every gate check (on deliberately broken arithmetic), the approve/review/reject rules, template trust promotion, shadow agreement and manual receipt intake; `tests/test_review_api.py` exercises the review and receipt endpoints over HTTP.
 
 ## Pilot path
 
@@ -305,7 +305,7 @@ pytest tests -q
 
 ## Evaluation on the AP sample set
 
-`tests/ap_samples/` is an AP 3-way-match eval kit: three scenarios (S1 matched, S2 exception, S3 exception + duplicate) as clean PDFs, degraded scans, ground-truth JSON and `manifest.json` with the expected outcome.
+`tests/ap_samples/` is an AP 3-way-match eval kit: three scenarios (S1 matched, S2 exception, S3 exception) as clean PDFs, degraded scans, ground-truth JSON and `manifest.json` with the expected outcome.
 
 ```bash
 python tests/ap_samples/run_eval.py --mode truth      # matching engine on ground truth (no OCR)
@@ -321,7 +321,7 @@ Expected outcomes encoded in the harness (from `manifest.json`):
 | --- | --- | --- |
 | S1 | `MATCHED` | no reason codes; then approvals → payment export |
 | S2 | `EXCEPTION` | `RATE_TOLERANCE_EXCEEDED` on line 1 (partial delivery is valid), `QTY_EXCEEDS_GRN` on line 3 |
-| S3 | `EXCEPTION` | `QTY_EXCEEDS_GRN` on line 3; the reprinted `inv_S3_duplicate.pdf` → `REJECT` + `DUPLICATE_INVOICE` |
+| S3 | `EXCEPTION` | `QTY_EXCEEDS_GRN` on line 3 |
 
 GRN quantities use the **accepted** quantity (`accepted_qty`), so goods rejected at the gate never become payable.
 

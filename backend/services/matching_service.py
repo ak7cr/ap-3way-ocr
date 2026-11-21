@@ -444,6 +444,20 @@ def import_po_csv(db: Session, text: str, source: str = "CSV") -> List[PurchaseO
 # ---------------------------------------------------------------------------
 # Canonicalize an extraction into an invoice document
 # ---------------------------------------------------------------------------
+def _delete_match_result(db: Session, result: MatchResult) -> None:
+    """
+    Remove a match result and the rows that point at it.
+
+    A result is referenced by the shadow-mode recommendation, any exception
+    action and any approval decision, so those must go first or the delete
+    violates a foreign key.
+    """
+    db.query(DecisionObservation).filter(DecisionObservation.match_result_id == result.id).delete()
+    db.query(ExceptionAction).filter(ExceptionAction.match_result_id == result.id).delete()
+    db.query(ApprovalDecision).filter(ApprovalDecision.match_result_id == result.id).delete()
+    db.delete(result)
+
+
 def _reverse_invoice_balances(db: Session, result: MatchResult) -> None:
     """Undo a previous match's balance impact before re-matching the same document."""
     if not result.balances_applied or not result.po_id:
@@ -488,19 +502,34 @@ def canonicalize_extraction(
 
     # Re-canonicalizing the same extraction (e.g. after the user supplies a PO
     # number) updates the existing document instead of creating a duplicate.
+    # The same invoice re-uploaded is the same document too: duplicate detection
+    # is not enabled, so the alternative would be billing the PO twice.
     doc = (
         db.query(InvoiceDocument)
         .filter(InvoiceDocument.extraction_log_id == extraction_log.id)
         .order_by(InvoiceDocument.id.desc())
         .first()
     )
+    if doc is None and canonical.invoice_number:
+        query = db.query(InvoiceDocument).filter(
+            InvoiceDocument.invoice_number == canonical.invoice_number
+        )
+        if canonical.invoice_date:
+            parsed = _dt(canonical.invoice_date)
+            if parsed is not None:
+                query = query.filter(InvoiceDocument.invoice_date == parsed)
+        if resolution.vendor and resolution.vendor.id:
+            query = query.filter(InvoiceDocument.vendor_id == resolution.vendor.id)
+        doc = query.order_by(InvoiceDocument.id.desc()).first()
+        if doc is not None:
+            doc.extraction_log_id = extraction_log.id
     if doc is None:
         doc = InvoiceDocument(extraction_log_id=extraction_log.id, tenant_id=DEFAULT_TENANT)
         db.add(doc)
     else:
         for previous in db.query(MatchResult).filter(MatchResult.invoice_document_id == doc.id).all():
             _reverse_invoice_balances(db, previous)
-            db.delete(previous)
+            _delete_match_result(db, previous)
         db.query(InvoiceDocumentLine).filter(InvoiceDocumentLine.invoice_document_id == doc.id).delete()
 
     doc.vendor_id = resolution.vendor.id if resolution.vendor else None
@@ -649,34 +678,6 @@ def _build_po_state(db: Session, po: Optional[PurchaseOrder]) -> Optional[POStat
     )
 
 
-def find_duplicate_invoice(db: Session, doc: InvoiceDocument) -> Optional[int]:
-    """Same vendor + invoice number + amount + date within the duplicate window."""
-    if not doc.invoice_number or not doc.grand_total:
-        return None
-    cutoff = datetime.utcnow() - timedelta(days=MATCH.duplicate_window_days)
-    query = db.query(InvoiceDocument).filter(
-        InvoiceDocument.id != doc.id,
-        InvoiceDocument.invoice_number == doc.invoice_number,
-        InvoiceDocument.grand_total == doc.grand_total,
-        InvoiceDocument.created_at >= cutoff,
-    )
-    if doc.invoice_date:
-        query = query.filter(InvoiceDocument.invoice_date == doc.invoice_date)
-    if doc.vendor_id:
-        query = query.filter(InvoiceDocument.vendor_id == doc.vendor_id)
-        existing = query.order_by(InvoiceDocument.created_at.asc()).first()
-        return existing.id if existing else None
-
-    canonical = doc.canonical_data or {}
-    gstin = normalize_gstin(canonical.get("vendor_gstin"))
-    if gstin:
-        for candidate in query.all():
-            other = normalize_gstin((candidate.canonical_data or {}).get("vendor_gstin"))
-            if other == gstin:
-                return candidate.id
-    return None
-
-
 def run_match_for_invoice(db: Session, invoice_document_id: int) -> MatchResult:
     started = time.time()
     doc = db.query(InvoiceDocument).filter(InvoiceDocument.id == invoice_document_id).first()
@@ -714,15 +715,12 @@ def run_match_for_invoice(db: Session, invoice_document_id: int) -> MatchResult:
         ),
     )
 
-    duplicate_of = find_duplicate_invoice(db, doc)
-
     ctx = MatchContext(
         invoice=canonical,
         po=_build_po_state(db, po),
         vendor_resolved=resolution.resolved or bool(doc.vendor_id),
         vendor_resolution_method=resolution.method,
         vendor_id=vendor.id if vendor else None,
-        duplicate_of_invoice_id=duplicate_of,
         tolerances=tolerances,
         require_grn=MATCH.require_grn,
         today=datetime.utcnow().date().isoformat(),
@@ -740,7 +738,6 @@ def run_match_for_invoice(db: Session, invoice_document_id: int) -> MatchResult:
         computed_tax=_dec(outcome.computed_tax),
         computed_total=_dec(outcome.computed_total),
         variance_total=_dec(outcome.variance_total),
-        duplicate_of_invoice_id=duplicate_of,
         match_duration_ms=duration_ms,
         matched_at=datetime.utcnow(),
     )
@@ -1383,12 +1380,9 @@ def compute_metrics(db: Session) -> Dict[str, Any]:
     rejects = [r for r in results if r.status == STATUS_REJECT]
 
     reason_counts: Dict[str, int] = {}
-    duplicates = 0
     for result in results:
         for code in result.reason_codes or []:
             reason_counts[code] = reason_counts.get(code, 0) + 1
-            if code == "DUPLICATE_INVOICE":
-                duplicates += 1
 
     def _cycle_hours(result: MatchResult) -> Optional[float]:
         doc = result.invoice_document
@@ -1445,7 +1439,6 @@ def compute_metrics(db: Session) -> Dict[str, Any]:
         "exception_rate": round(len(exceptions) / total, 4) if total else 0.0,
         "reject_rate": round(len(rejects) / total, 4) if total else 0.0,
         "touchless_invoices": len(touchless),
-        "duplicates_caught": duplicates,
         "exception_rate_by_reason": {
             code: round(count / total, 4) if total else 0.0
             for code, count in sorted(reason_counts.items(), key=lambda kv: -kv[1])

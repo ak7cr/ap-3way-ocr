@@ -3,7 +3,7 @@ Evaluation of the AP sample set (tests/ap_samples) against the 3-way match engin
 
 Ground truth JSON is fed through the real service layer (PO import → GRN import →
 invoice → deterministic match), so this exercises normalization, balances,
-duplicate detection and the reason codes — not just the pure engine.
+match outcomes and the reason codes — not just the pure engine.
 """
 import importlib.util
 
@@ -53,11 +53,11 @@ def test_s2_partial_delivery_line_is_valid(db):
     assert "QTY_EXCEEDS_GRN" in result.line_codes.get(3, [])
 
 
-def test_s3_duplicate_is_rejected(db):
+def test_s3_over_billed_line_is_caught(db):
     entry = next(e for e in MANIFEST if e["scenario"] == "S3")
     result = harness.run_truth_scenario(db, entry)
-    assert result.duplicate_status == STATUS_REJECT
-    assert "DUPLICATE_INVOICE" in result.duplicate_reason_codes
+    assert result.status == STATUS_EXCEPTION
+    assert "QTY_EXCEEDS_GRN" in result.line_codes.get(3, [])
 
 
 def test_grn_uses_accepted_quantity_not_received():

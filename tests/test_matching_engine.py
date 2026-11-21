@@ -2,7 +2,7 @@
 Hand-built 3-way match scenarios.
 
 These cases define correct matching behaviour: partial deliveries, tax mismatch,
-duplicates, over-billing, tolerance edges, and the exception-vs-reject split.
+over-billing, tolerance edges, and the exception-vs-reject split.
 """
 from decimal import Decimal
 
@@ -270,12 +270,6 @@ def test_currency_mismatch_is_reject():
     outcome = run_three_way_match(ctx(po=po_state(currency="USD")))
     assert outcome.status == STATUS_REJECT
     assert "CURRENCY_MISMATCH" in codes(outcome)
-
-
-def test_duplicate_invoice_is_reject():
-    outcome = run_three_way_match(ctx(duplicate_of_invoice_id=42))
-    assert outcome.status == STATUS_REJECT
-    assert "DUPLICATE_INVOICE" in codes(outcome)
 
 
 def test_unknown_vendor_is_reject():

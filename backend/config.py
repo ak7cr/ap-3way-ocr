@@ -287,17 +287,15 @@ def resolve_tolerances(
 
 
 # ---------------------------------------------------------------------------
-# Duplicate detection / match behaviour
+# Match behaviour
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class MatchSettings:
-    duplicate_window_days: int = 180       # how far back to look for the same invoice
     require_grn: bool = True               # 3-way by default
     allow_over_delivery: bool = False
 
 
 MATCH = MatchSettings(
-    duplicate_window_days=int(_env_float("MATCH_DUPLICATE_WINDOW_DAYS", 180)),
     require_grn=os.getenv("MATCH_REQUIRE_GRN", "true").lower() != "false",
 )
 
@@ -331,7 +329,6 @@ APPROVAL_RULES: List[ApprovalRule] = [
 APPROVAL_ESCALATED_REASON_CODES = {
     "VENDOR_MISMATCH",
     "PO_NOT_FOUND",
-    "DUPLICATE_INVOICE",
     "QTY_EXCEEDS_PO",
 }
 

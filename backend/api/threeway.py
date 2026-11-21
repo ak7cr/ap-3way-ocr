@@ -386,7 +386,6 @@ def match_inline(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_
 def _match_response(db: Session, result: MatchResult) -> Dict[str, Any]:
     detail = svc.build_side_by_side(db, result)
     detail["match_duration_ms"] = result.match_duration_ms
-    detail["duplicate_of_invoice_id"] = result.duplicate_of_invoice_id
     return detail
 
 

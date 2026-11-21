@@ -161,18 +161,18 @@ def test_clean_match_is_reviewed_in_shadow_mode_not_approved():
     assert not outcome.auto_approve_allowed
 
 
-def test_duplicate_is_rejected_outright():
+def test_missing_po_number_is_rejected_outright():
     outcome = decide(
         validation_passed=True,
         match_status="REJECT",
-        reason_codes=["DUPLICATE_INVOICE"],
+        reason_codes=["PO_NUMBER_MISSING"],
         vendor_known=True,
         po_exists=True,
         po_open=True,
         policy=LIVE_EARNED,
     )
     assert outcome.decision == REJECT
-    assert "DUPLICATE_INVOICE" in outcome.reason_codes
+    assert "PO_NUMBER_MISSING" in outcome.reason_codes
 
 
 def test_invalid_gstin_is_rejected_even_with_no_match_reasons():

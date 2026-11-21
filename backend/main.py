@@ -174,7 +174,6 @@ def threeway_config():
             "total_abs": str(DEFAULT_TOLERANCES.total_abs),
         },
         "match": {
-            "duplicate_window_days": MATCH.duplicate_window_days,
             "require_grn": MATCH.require_grn,
         },
         "approval_rules": [

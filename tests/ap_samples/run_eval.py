@@ -45,8 +45,6 @@ def run_truth(verbose: bool = False) -> int:
             f"  {result.scenario:<3} {status}  {result.status:<9} "
             f"codes={', '.join(result.reason_codes) or '-'}"
         )
-        if result.duplicate_status:
-            print(f"        duplicate -> {result.duplicate_status} ({', '.join(result.duplicate_reason_codes) or '-'})")
         if verbose:
             for line_no, codes in sorted(result.line_codes.items()):
                 print(f"        line {line_no}: {', '.join(codes) or 'ok'}")

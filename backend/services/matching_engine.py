@@ -6,7 +6,7 @@ the received quantities and returns MATCHED / EXCEPTION / REJECT plus reason cod
 Keeping it pure is what makes it testable against hand-built scenarios.
 
 Order of evaluation:
-  1. header checks  (vendor, PO exists/open, currency, duplicate)
+  1. header checks  (vendor, PO exists/open, currency)
   2. line checks    (invoice qty <= GRN qty <= PO qty, rate tolerance)
   3. totals         (tax recompute, grand total)
   4. partial delivery against the PO line balance (received minus already invoiced)
@@ -35,7 +35,6 @@ REJECT_REASON_CODES = {
     "PO_NOT_OPEN",
     "PO_NUMBER_MISSING",
     "CURRENCY_MISMATCH",
-    "DUPLICATE_INVOICE",
     "MISSING_INVOICE_NUMBER",
     "MISSING_INVOICE_LINES",
     "UNKNOWN_VENDOR",
@@ -48,7 +47,6 @@ REASON_DESCRIPTIONS = {
     "PO_NOT_OPEN": "The purchase order is closed or cancelled.",
     "PO_NUMBER_MISSING": "The invoice does not reference a purchase order.",
     "CURRENCY_MISMATCH": "Invoice currency differs from the purchase order currency.",
-    "DUPLICATE_INVOICE": "An invoice with the same vendor, number, amount and date was already processed.",
     "MISSING_INVOICE_NUMBER": "The invoice number could not be read.",
     "MISSING_INVOICE_LINES": "No line items were extracted from the invoice.",
     "UNKNOWN_VENDOR": "Vendor could not be matched to the vendor master.",
@@ -128,7 +126,6 @@ class MatchContext:
     vendor_resolved: bool = True
     vendor_resolution_method: str = "NONE"
     vendor_id: Optional[int] = None
-    duplicate_of_invoice_id: Optional[int] = None
     tolerances: MatchTolerances = DEFAULT_TOLERANCES
     require_grn: bool = MATCH.require_grn
     today: Optional[str] = None
@@ -320,19 +317,6 @@ def run_three_way_match(ctx: MatchContext) -> MatchOutcome:
                 _add_reason(outcome, "VENDOR_PO_MISMATCH")
             else:
                 outcome.checks.append(CheckResult("vendor_po", True, "same vendor"))
-
-    if ctx.duplicate_of_invoice_id is not None:
-        outcome.checks.append(
-            CheckResult(
-                "duplicate",
-                False,
-                f"same vendor/number/amount/date as invoice #{ctx.duplicate_of_invoice_id}",
-                "DUPLICATE_INVOICE",
-            )
-        )
-        _add_reason(outcome, "DUPLICATE_INVOICE")
-    else:
-        outcome.checks.append(CheckResult("duplicate", True, "no duplicate found"))
 
     parsed_date = parse_canonical_date(invoice.invoice_date)
     if invoice.invoice_date and parsed_date is None:

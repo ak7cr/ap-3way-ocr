@@ -134,7 +134,7 @@ SCEN["S2"] = dict(
     expected=dict(status="EXCEPTION", reasons=["RATE_MISMATCH(line 1: invoice 40.20 vs PO 38.50, +4.4%)", "QTY_EXCEEDS_GRN(line 3: invoiced 600 vs accepted 540)"],
                   note="Line 1 partial delivery (3000 of 5000) is VALID; only the rate is wrong. IGST because vendor is Maharashtra and buyer is Tamil Nadu."))
 
-# S3: small vendor, plain layout, over-billing + duplicate copy
+# S3: small vendor, plain layout, over-billing (+ a reprinted copy for reference)
 po3 = [L("LUB-SRV68", "Servo Hydraulic Oil 68, 210 L Drum", "2710", 4, "Drum", 21500.00, 18),
        L("GRS-EP2", "Lithium Grease EP2, 18 kg Pail", "2710", 6, "Pail", 3850.00, 18),
        L("CW-50", "Cotton Waste, 50 kg Bale", "6310", 10, "Bale", 1450.00, 5)]
@@ -146,8 +146,8 @@ SCEN["S3"] = dict(
     po=dict(no="LPC/PO/0267", date=(3, 11, 2026), delivery=(12, 11, 2026), terms="Net 30 days", lines=po3),
     grn=dict(no="MRR-2026-0581", date=(12, 11, 2026), challan="AT/1042", challan_date=(12, 11, 2026), vehicle="TN 38 BQ 5109", lines=grn3_rows),
     inv=dict(no="AT/0376", date=(12, 11, 2026), lines=copy.deepcopy(po3), eway=None),
-    expected=dict(status="EXCEPTION", reasons=["QTY_EXCEEDS_GRN(line 3: invoiced 10 vs accepted 8)", "DUPLICATE_INVOICE (second file inv_S3_duplicate.pdf)"],
-                  note="Mixed GST rates (18% and 5%). The duplicate is the same invoice re-printed as 'Duplicate for Transporter' and must be caught by the vendor+invoice no+amount check."))
+    expected=dict(status="EXCEPTION", reasons=["QTY_EXCEEDS_GRN(line 3: invoiced 10 vs accepted 8)"],
+                  note="Mixed GST rates (18% and 5%). inv_S3_duplicate is the same invoice re-printed as 'Duplicate for Transporter' for reference; duplicate detection is not enabled."))
 
 # ---------------------------------------------------------------- tax calc
 def totals(lines, buyer, vendor):

@@ -54,7 +54,6 @@ class ScenarioExpectation:
     required_codes: List[str] = field(default_factory=list)
     line_codes: Dict[int, List[str]] = field(default_factory=dict)
     forbidden_line_codes: Dict[int, List[str]] = field(default_factory=dict)
-    duplicate_expected: bool = False
 
 
 EXPECTATIONS: Dict[str, ScenarioExpectation] = {
@@ -67,12 +66,11 @@ EXPECTATIONS: Dict[str, ScenarioExpectation] = {
         line_codes={1: ["RATE_TOLERANCE_EXCEEDED"], 3: ["QTY_EXCEEDS_GRN"]},
         forbidden_line_codes={1: ["QTY_EXCEEDS_GRN", "QTY_EXCEEDS_PO"]},
     ),
-    # S3: invoice qty 10 vs accepted 8 on line 3; the reprinted invoice must be a duplicate.
+    # S3: invoice qty 10 vs accepted 8 on line 3.
     "S3": ScenarioExpectation(
         status=STATUS_EXCEPTION,
         required_codes=["QTY_EXCEEDS_GRN"],
         line_codes={3: ["QTY_EXCEEDS_GRN"]},
-        duplicate_expected=True,
     ),
 }
 
@@ -83,8 +81,6 @@ class ScenarioResult:
     status: str
     reason_codes: List[str]
     line_codes: Dict[int, List[str]]
-    duplicate_status: Optional[str] = None
-    duplicate_reason_codes: List[str] = field(default_factory=list)
     invoice_number: Optional[str] = None
     grand_total: Optional[str] = None
     failures: List[str] = field(default_factory=list)
@@ -129,15 +125,6 @@ def run_truth_scenario(db, entry: Dict[str, Any]) -> ScenarioResult:
         grand_total=str(doc.grand_total),
     )
 
-    if docs.get("inv_duplicate"):
-        dup_truth = load_truth(docs["inv_duplicate"])
-        dup_doc = svc.create_invoice_document(
-            db, canonical_invoice_from_dict(dup_truth, source="AP_SAMPLE"), original_filename=f"{docs['inv_duplicate']}.pdf"
-        )
-        dup_result = svc.run_match_for_invoice(db, dup_doc.id)
-        out.duplicate_status = dup_result.status
-        out.duplicate_reason_codes = list(dup_result.reason_codes or [])
-
     out.failures = check_expectations(out, EXPECTATIONS[scenario])
     return out
 
@@ -162,12 +149,6 @@ def check_expectations(result: ScenarioResult, expected: ScenarioExpectation) ->
         for code in codes:
             if code in actual:
                 failures.append(f"line {line_no}: unexpected {code}")
-
-    if expected.duplicate_expected:
-        if result.duplicate_status != STATUS_REJECT:
-            failures.append(f"duplicate: expected {STATUS_REJECT}, got {result.duplicate_status}")
-        if "DUPLICATE_INVOICE" not in result.duplicate_reason_codes:
-            failures.append("duplicate: missing DUPLICATE_INVOICE")
     return failures
 
 
